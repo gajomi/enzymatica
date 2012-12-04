@@ -1,0 +1,16 @@
+from enzymatica import parse_turbidity_data, infer_ml_parameters_given
+
+#import data
+datafile = 'test_data1.data'
+meta,calib,initial_conditions,time,turbidity = parse_turbidity_data(datafile)
+
+#perform inference given error level (this should really be part of datafile)
+sigma = .002
+k_box = [[.5, 1.5],[.5,1.5],[.1,.4]]
+(k_est, k_est_cov) = infer_ml_parameters_given(sigma,calib,
+                                               initial_conditions,time,
+                                               turbidity,
+                                               k_bounds = k_box)
+
+print k_est
+print k_est_cov
