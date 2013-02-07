@@ -22,14 +22,17 @@ class TurbidityExperiment(object):
   """
 
   def __init__(self, **config):
-    self.meta = ('meta' in config and config['meta']) or None
-    self.calibration = ('calibration' in config and config['calibration']) or None
-    self.sigma = ('sigma' in config and config['sigma']) or None
-    self.initial_conditions = ('initial_conditions' in config and config['initial_conditions']) or None
-    self.t = ('t' in config and config['t']) or None
-    self.turbidity = ('turbidity' in config and config['turbidity']) or None
-    self.phi0 = ('phi0' in config and config['phi0']) or None
+    self.meta = config.get('meta')
+    self.calibration = config.get('calibration')
+    self.sigma = config.get('sigma')
+    self.initial_conditions = config.get('initial_conditions')
+    self.t = config.get('t')
+    self.turbidity = config.get('turbidity')
+    self.phi0 = config.get('phi0')
     self.time_series = None
+
+    # The expected susceptibility curve for the experiment.
+    self.susceptibility_curve = config.get('susceptibility_curve', beta)
 
   def basic_susceptibility(self, phi, z0, z):
     """
@@ -37,7 +40,7 @@ class TurbidityExperiment(object):
     This is where the implementation of the beta distribution occurs.
     """
     fraction = z[:,3] / z0[0]
-    return beta.cdf(fraction,phi[0],phi[1])
+    return self.susceptibility_curve.cdf(fraction,phi[0],phi[1])
 
   def infer_ml_parameters_given(self, k_bounds = None, k0 = None):
     """Return maximum likelihood solution the basic instance of the inference problem"""
