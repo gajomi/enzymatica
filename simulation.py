@@ -50,10 +50,7 @@ class Simulation(object):
     c1 = calib[1] # Turbidity per unit product
     delta = c1 - c0 # Differential specific turbidity
     nconditions = reaction_state.shape[0]
-    susceptibilities = [self.susceptibility(reaction_state[i,:,:]) for i in range(nconditions)]
-    scaled_susceptibilities = [c0 + delta * s for s in susceptibilities]
-    return np.array([rx * s for rx, s in zip(reaction_state[:,0,0], scaled_susceptibilities)])
-
+    return np.array([reaction_state[i,0,0] * (c0 + delta * self.susceptibility(reaction_state[i,:,:])) for i in range(nconditions)])
 #This may be desireable to wrap in inference. Leave it out for now
 #  def _model(self, k1, k2, k3, a, b):
 #    k = [k1, k2, k3]
