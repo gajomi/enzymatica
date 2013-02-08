@@ -61,9 +61,18 @@ def posterior_params(prior_data,prior_params,model):
 
 
 
-
-
-
+##Below is some turbidity experiment specific stuff, perhaps should be factored out
+#  def infer_ml_parameters_given(self,k_bounds = None, k0 = None):
+#    """Return maximum likelihood solution the basic instance of the inference problem"""
+#    if k0 is None:
+#      k0 = np.mean(k_bounds,1)
+#
+#    x0 = np.concatenate((k0, self.phi0))
+#    f = lambda x: np.ndarray.flatten(self._model(*x) - self.turbidity) / self.sigma
+#    params_est, params_est_cov, infodict, message,flag = optimize.leastsq(f,x0,full_output=1)
+#    self.params_est = params_est
+#    self.params_est_cov = params_est_cov
+#    return (params_est, params_est_cov)
 
     
 

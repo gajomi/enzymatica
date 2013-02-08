@@ -1,16 +1,19 @@
 import numpy as np
 import scipy.optimize as optimize
 import pylab as plt
-from scipy.integrate import odeint
-from scipy.stats import beta
+
 from functools import partial
 from itertools import dropwhile, takewhile
+from collections import namedtuple
+
+TurbiditySetup = namedtuple('TurbiditySetup', 
+                            ['meta', 'calibration','sigma','initial_conditions','t'])
 
 class TurbidityExperiment(object):
   """
   A turbidity experiment. This is an informational class that will define the attributes of an
-  experiment that is to be conducted. Provided some initial conditions, calibration constants and
-  other meta data, we can define the experiment that is run.
+  experiment that is to be conducted. A turbidity experiment is contructed from a TturbiditySetup
+  and either a specification of the turbidity data or a simulation
 
   --------------------------------------------------------------------------------------------------
   Superclass and Subtypes
@@ -21,47 +24,9 @@ class TurbidityExperiment(object):
   known chemistry and curve parameters (k, phi), and will simulate the turbidity provided a model.
   """
 
-  def __init__(self, **config):
-    self.meta = config.get('meta')
-    self.calibration = config.get('calibration')
-    self.sigma = config.get('sigma')
-    self.initial_conditions = config.get('initial_conditions')
-    self.t = config.get('t')
-    self.turbidity = config.get('turbidity')
-    self.phi0 = config.get('phi0')
+  def __init__(self,turbiditysetup, **config):
+    self.turbiditysetup = turbiditysetup
     self.time_series = None
-
-    # The expected susceptibility curve for the experiment.
-    self.susceptibility_curve = config.get('susceptibility_curve', beta)
-
-  def basic_susceptibility(self, phi, z0, z):
-    """
-    Returns a simple estimate of the susceptibiltiy based on the chemical state.
-    This is where the implementation of the beta distribution occurs.
-    """
-    fraction = z[:,3] / z0[0]
-    return self.susceptibility_curve.cdf(fraction,phi[0],phi[1])
-
-  def infer_ml_parameters_given(self, k_bounds = None, k0 = None):
-    """Return maximum likelihood solution the basic instance of the inference problem"""
-    if k0 is None:
-      k0 = np.mean(k_bounds,1)
-    
-    x0 = np.concatenate((k0, self.phi0))
-    f = lambda x: np.ndarray.flatten(self._model(*x) - self.turbidity) / self.sigma
-    params_est, params_est_cov, infodict, message,flag = optimize.leastsq(f,x0,full_output=1)
-    self.params_est = params_est
-    self.params_est_cov = params_est_cov
-    return (params_est, params_est_cov)
-
-  def mm_rate(self, k, z):
-    """The Michealis-Menten reaction rate a concentration z and rate parameter k"""
-    s,e,c,j = z
-    k_bind,k_unbind,k_cat = k
-    return np.array([-k_bind * s * e + k_unbind * c,
-                     -k_bind * s * e + k_unbind * c + k_cat * c,
-                     k_bind * s * e - k_unbind * c - k_cat * c,
-                     k_cat * c])
 
   def parse_turbidity_data(self, filename):
     """
@@ -92,26 +57,8 @@ class TurbidityExperiment(object):
 
     return (meta, calib, sigma, initial_conditions, t, turbidity)
 
-  def reaction_time_series(self, rate_fun, z0, T):
-    """Returns a reaction time series given the rate function, initial condition, and range of times"""
-    if np.size(T)==1:
-      t = np.linspace(0,T,1000).T
-    else:
-      t = T
-    return odeint(lambda zed,tau: rate_fun(zed),z0,t)
-
-  def turbidity_from(self, reaction_state, susceptibility, calibration):
-    """Returns the turbidity given the reaction sate and susceptibilty functions"""
-    return reaction_state[0,0] * (calibration[0] + (calibration[1] - calibration[0]) * susceptibility(reaction_state))
-
   def _drop_then_take_until(self, pred,seq):
     return takewhile(lambda x: not pred(x),dropwhile(pred,seq))
-
-  def _model(self, k1, k2, k3, a, b):
-    k = [k1, k2, k3]
-    Z = [self.reaction_time_series(partial(self.mm_rate, k), z0, self.time) for z0 in self.initial_conditions]
-    susceptibility = lambda z0, z: self.basic_susceptibility((a, b), z0, z)
-    return np.array([self.turbidity_from(z, partial(susceptibility, z[0, :]), self.calib) for z in Z])
 
   def _segment_data(self, data):
     data = iter(d[:-1]+' ' for d in data)
