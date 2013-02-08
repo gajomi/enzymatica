@@ -15,10 +15,10 @@ def mm_rate(k, z):
                    k_cat * c])
 
 def beta_susceptibility(phi,z):
-  """Returns a susceptibility given shape parameters and chemical state"""
-  s0 = z[0,0]
-  fraction = z[:,3] / s0
-  return beta.cdf(fraction,phi[0],phi[1])
+  """Returns a susceptibility given shape parameters and chemical state. This is expecting
+  a single initial condition."""
+  fraction = z[:,3] / z[0,0]
+  return beta.cdf(fraction, phi[0],phi[1])
 
 class Simulation(object):
   """
@@ -31,19 +31,28 @@ class Simulation(object):
     self.susceptiblity_model = susceptiblity_model
     self.k = k
     self.phi = phi
+
   def reaction_time_series(self):
     """Returns a reaction time series for this simulation"""
     Z0 = self.turbiditysetup.initial_conditions
     rate_fun = partial(self.reaction_model,self.k)
     return np.array([odeint(lambda zed,tau: rate_fun(zed),z0,self.turbiditysetup.t) for z0 in Z0])
+
   def susceptibility(self,z):
     """Returns the suscetibility at the specified chemical state"""
     return self.susceptiblity_model(self.phi,z)
+
   def turbidity_time_series(self):
     """Returns a turbidity time series for the simulation"""
     calib = self.turbiditysetup.calibration
     reaction_state = self.reaction_time_series()
-    return reaction_state[0,0]*(calib[0] + (calib[1] - calib[0])*self.susceptibility(reaction_state))
+    c0 = calib[0] # Turbidity per unit substrate
+    c1 = calib[1] # Turbidity per unit product
+    delta = c1 - c0 # Differential specific turbidity
+    nconditions = reaction_state.shape[0]
+    susceptibilities = [self.susceptibility(reaction_state[i,:,:]) for i in range(nconditions)]
+    scaled_susceptibilities = [c0 + delta * s for s in susceptibilities]
+    return np.array([rx * s for rx, s in zip(reaction_state[:,0,0], scaled_susceptibilities)])
 
 #This may be desireable to wrap in inference. Leave it out for now
 #  def _model(self, k1, k2, k3, a, b):

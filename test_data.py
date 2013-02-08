@@ -1,6 +1,7 @@
 #from enzymatica import *
 import numpy as np
 from itertools import takewhile
+from enzymatica import TurbiditySetup, TurbidityExperiment
 
 def write_test_data(filename,sigma,calib,initial_conditions,time,k,phi):
     """Generates a test data set from specified arguments"""
