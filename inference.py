@@ -3,76 +3,71 @@ import scipy.optimize as optimize
 import pylab as plt
 from collections import namedtuple
 
-RV = namedtuple('RV',['interval','likelihood','pdf'])
+class RV(object):
+    def __init__(self,space,Pfun):
+        self.space = space
+        self.Pfun = Pfun
 
-def normalize(X):
-    """Returns the random variable with properply normalized pdf"""
-    pass
-
-def maximum_likelihood(X,k0 = None):
-    if k0 is None:
-        interval = X.interval
-        if isinstance(interval,list):
-            k0 = [np.mean(i) for i in interval]
+class Normal(RV):
+    def __init__(self,mean,variance):
+        self.mean = mean
+        self.variance = variance
+        self.space = "Reals"
+    def E(self,f = None):
+        if f is None:
+            return self.mean
         else:
-            k0 = np.mean(interval)
-    f = lambda k: -np.log(X.likelihood(k))
-    params_est, params_est_cov, infodict, message,flag = optimize.leastsq(f,k0,full_output=1)
-    return (params_est,params_est_cov)
+            raise NotImplementedError
+    def L(self,x):
+        return norm.pdf(x,self.mean,np.sqrt(self.variance))
+    def P(self,event):
+        if isinstance(event,RealInterval):
+            return norm.cdf(event.upper,self.mean,np.sqrt(self.variance))-norm.cdf(event.lower,self.mean,np.sqrt(self.variance))
+        else:
+            return 0.
+    def maximum_likelihood(self):
+        return self.E()
 
-def is_within(interval,x):
-    """Returns True if the argument is strictly within the specified interval"""
-    if isinstance(interval,list):
-        return all(is_within(i,x) for i in interval)
-    else:
-        return interval[0] < x < interval[1]
+class Uniform(RV):
+    def __init__(self,interval):
+        self.space = interval
+    def E(self,f = None):
+        if f is None:
+            return [.5*(x[0]+x[1]) for x in space]
+        else:
+            raise NotImplementedError
+    def L(self,x):
+        return 1.
 
-def interval_intersection(i1,i2):
-    """Returns the intersection of two intervals"""
-    if isinstance(i1,list):
-        return [interval_intersection(x,y) for x,y in zip(i1,i2)]
-    else:
-        return (np.max(i1[0],i2[0]),np.min(i1[1],i2[1]))
+class ModelRV(RV):
+    def __init__(self,input_space,output_space,model,is_deterministic = True):
+        self.space = [input_space,output_space]#logically, the cartesian product
+        self.model = model
+        self.is_deterministic = is_deterministic
 
-def uniform(interval):
-    """Returns a uniformly disitributed random variable over the interval"""
-    if isinstance(interval,list):
-        u = 1.0/product(i[1]-i[0] for i in interval)
-        uniform_pdf = lambda k: u if is_within(interval,k) else 0
-    else:
-        uniform_pdf = lambda k: 1.0/(interval[1]-interval[0]) if is_within(interval,k) else 0
-    return RV(interval,uniform_pdf,uniform_pdf)
+class Posterior(RV):
+    def __init__(self,prior,model,data):
+        self.prior = prior
+        self.model = model
+        self.data = data
+    def E(self,f = None):
+        raise NotImplementedError
+    def L(self,x):
+        if self.model.is_deterministic:
+            d = self.model(x)
+            return self.prior.L(x)*self.data.L(d)
+        else:
+            raise NotImplementedError
+    def maximum_likelihood(self,x0=None):
+        if x0 is None:
+            if isinstance(self.prior,UniformRV):
+                x0 = [np.mean(y) for y in self.prior.space]
+            else:
+                x0 = self.prior.maximum_likelihood()
+        f = lambda x: -np.log(self.L(x))
+        params_est, params_est_cov, infodict, message,flag = optimize.leastsq(f,x0,full_output=1)
+        return (params_est,params_est_cov)
 
-def normal(mean,covariance):
-    """Returns a normally distributed random variable min specified mean and covariance"""
-    N = len(data)
-    if np.size(covariance) == 1:
-        interval = [(-np.Inf,np.Inf) for i in range(N)]
-        normal_pdf = lambda x : np.exp(-0.5*np.sum((x-data)**2)/covariance)/np.sqrt(2*np.pi*covariance)
-        return RV(interval,normal_pdf,normal_pdf)
-    else:
-        raise NotImplementedError("Will implement if this error is ever thrown")
-
-def posterior_params(prior_data,prior_params,model):
-    """Forms RV fro posterior parameters from priors and model"""
-    interval = prior_params.interval    
-    posterior_likelihood = lambda k: prior_params.likelihood(k)*prior_data.likelihood(model(k))
-    return RV(interval,posterior_likelihood,None)
-
-
-
-##Below is some turbidity experiment specific stuff, perhaps should be factored out
-#  def infer_ml_parameters_given(self,k_bounds = None, k0 = None):
-#    """Return maximum likelihood solution the basic instance of the inference problem"""
-#    if k0 is None:
-#      k0 = np.mean(k_bounds,1)
-#
-#    x0 = np.concatenate((k0, self.phi0))
-#    f = lambda x: np.ndarray.flatten(self._model(*x) - self.turbidity) / self.sigma
-#    params_est, params_est_cov, infodict, message,flag = optimize.leastsq(f,x0,full_output=1)
-#    self.params_est = params_est
-#    self.params_est_cov = params_est_cov
-#    return (params_est, params_est_cov)
 
     
 

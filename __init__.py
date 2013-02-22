@@ -3,4 +3,4 @@
 from turbidity_experiment import TurbidityExperiment
 from turbidity_experiment import TurbiditySetup
 from simulation import Simulation
-
+from inference import *
