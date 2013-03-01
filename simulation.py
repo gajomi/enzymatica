@@ -25,7 +25,8 @@ class Simulation(object):
   This is a class for simulating turbidity time series. The input is a turbidity setup,
   a reaction model
   """
-  def __init__(self,turbiditysetup,k, phi,reaction_model = mm_rate,susceptiblity_model = beta_susceptibility):
+
+  def __init__(self, turbiditysetup, k, phi,reaction_model=mm_rate, susceptiblity_model=beta_susceptibility):
     self.turbiditysetup = turbiditysetup
     self.reaction_model = reaction_model
     self.susceptiblity_model = susceptiblity_model
