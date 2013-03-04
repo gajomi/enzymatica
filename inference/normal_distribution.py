@@ -7,7 +7,16 @@ from inference import RandomVariable
 
 class NormalDistribution(RandomVariable):
   def __init__(self, mean, variance):
-    super(NormalDistribution, self).__init__(
+    if type(mean) == type(0.0):
+      super(NormalDistribution, self).__init__(self, None)
+      self.N = 1
+    else:
+      # Do something fancy.
+      self.N = self.num_vars = len(mean)
+    
+    self.mean = mean
+    self.variance = variance
+    self.sigma = np.sqrt(variance)
 
   def E(self,f = None):
     if f is None:
@@ -15,8 +24,13 @@ class NormalDistribution(RandomVariable):
     else:
       raise NotImplementedError
   
-  def L(self,x):
-    return norm.pdf(x,self.mean,np.sqrt(self.variance))
+  def L(self, x):
+    if self.N > 1:
+      # assuming the variables are independent of each other
+      values = np.array([np.log(norm.pdf(x_i, mu_i, self.sigma)) for x_i, mu_i in zip(x, self.mean)])
+      return np.exp(np.sum(values))
+    else:
+      return norm.pdf(x, self.mean, np.sqrt(self.variance))
 
   def P(self,event):
     """ The probability of the event """

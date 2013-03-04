@@ -18,7 +18,7 @@ class RandomVariable(object):
     # Assuming we know the dimensions from the space and the mean
     self._covar = covar # Will be a diagonal matrix.
 
-    if len(self.space) > 0):
+    if len(self.space) > 0:
       self.__verify_sample_space() # At this time, assume the sample space passed in is correct.
 
   def add_sample_space_point(self, point):
@@ -38,7 +38,7 @@ class RandomVariable(object):
     space = self.space
 
     # Check that space exists.
-    if space == None || (not isinstance(space, type([])) || len(space) == 0:
+    if space == None or (not isinstance(space, type([]))) or len(space) == 0:
       raise 'The space for this random variable cannot be empty'
 
     # Check that the dimensionality of each tuple in the space is the same.
