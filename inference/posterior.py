@@ -10,10 +10,10 @@ class Posterior(RandomVariable):
     self.model = model
     self.data = data
 
-  def E(self, f = None):
+  def expectation(self, f = None):
     raise NotImplementedError
   
-  def L(self, x):
+  def likelihood(self, x):
     """
     Assuming a deterministic parameter for the model x. In this case the model is turbidity. 
     For any particular parameter set (kinetic and shape parameters). 
@@ -21,11 +21,18 @@ class Posterior(RandomVariable):
     """
     if self.model.is_deterministic:
       d = self.model.model(x)
-      return self.prior.L(x) * self.data.L(d)
+      return self.prior.likelihood(x) * self.data.likelihood(d)
     else:
       raise NotImplementedError
 
-  def maximum_likelihood(self,x0=None):
+  def log_likelihood(self, x):
+    if self.model.is_deterministic:
+      d = self.model.model(x)
+      return self.prior.log_likelihood(x) + self.data.log_likelihood(d)
+    else:
+      raise NotImplementedError
+
+  def maximum_likelihood(self, x0 = None):
     """
     Provided a space of likelihoods, optimize and find the maximum.
     """
@@ -36,7 +43,7 @@ class Posterior(RandomVariable):
         x0 = self.prior.maximum_likelihood()
 
     x0 = np.array(x0).T
-    f = lambda x: -np.log(self.L(x)) # Once the function f has been initialized.
+    f = lambda x: -self.log_likelihood(x) # Once the function f has been initialized.
     # This is expecting x to be a vector.
     result = optimize.minimize(f,x0, method='BFGS')
     return result # Estimate and covariance structure.
