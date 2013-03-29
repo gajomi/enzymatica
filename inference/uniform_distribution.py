@@ -19,6 +19,8 @@ class UniformDistribution(RandomVariable):
 
   def log_likelihood(self, x):
     # If the value falls outside of the bounds, return negative infinity.
-
-    return 0.0
+    #for val in x:
+    #  for boundary in interval:
+    
+    return -1.0
 
